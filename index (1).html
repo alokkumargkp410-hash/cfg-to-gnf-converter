@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFG → CNF & GNF Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">∑</div>
+    <div>
+      <div class="logo-text">Grammar Lab</div>
+      <div class="logo-sub">CFG → CNF & GNF Converter</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-cnf">Chomsky Normal Form</span>
+    <span class="badge badge-gnf">Greibach Normal Form</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="left-panel">
+
+    <div>
+      <div class="panel-section-title">Quick Examples</div>
+      <div class="example-grid">
+        <button class="example-btn" onclick="loadEx(0)">
+          <span class="ex-name">Classic</span>Basic two-variable grammar
+        </button>
+        <button class="example-btn" onclick="loadEx(1)">
+          <span class="ex-name">ε-rules</span>With null productions
+        </button>
+        <button class="example-btn" onclick="loadEx(2)">
+          <span class="ex-name">Unit prods</span>Chain productions
+        </button>
+        <button class="example-btn" onclick="loadEx(3)">
+          <span class="ex-name">Complex</span>Left recursion & mix
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-section-title">Grammar Input</div>
+      <div class="input-label">
+        <span>Production rules (one per line)</span>
+      </div>
+      <textarea id="grammar-input" spellcheck="false" placeholder="S -> AB | a&#10;A -> aA | a&#10;B -> bB | b"></textarea>
+
+      <div class="hint-box" style="margin-top:10px;">
+        <strong style="color:var(--text2)">Syntax guide:</strong><br>
+        • Uppercase = variables &nbsp;• Lowercase = terminals<br>
+        • Use <code>|</code> to separate alternatives<br>
+        • Use <code>eps</code> or <code>ε</code> for empty string<br>
+        • e.g. <code>S -> aB | eps</code>
+      </div>
+
+      <div class="start-row" style="margin-top:12px;">
+        <label for="start-sym">Start symbol:</label>
+        <input type="text" id="start-sym" value="S" maxlength="4" />
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="convert-btn" onclick="runConversion()">Convert Grammar →</button>
+      <button class="clear-btn" onclick="clearAll()">Clear / Reset</button>
+    </div>
+
+    <div id="error-box"></div>
+
+    <div id="nav-section" style="display:none;">
+      <div class="panel-section-title">Steps</div>
+      <div class="step-nav" id="step-nav"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel" id="right-panel">
+    <div class="welcome-screen">
+      <div class="welcome-icon">⊢</div>
+      <div class="welcome-title">CFG Normal Form Converter</div>
+      <div class="welcome-sub">
+        Enter a Context-Free Grammar and watch it transform step-by-step into both Chomsky Normal Form and Greibach Normal Form with detailed explanations at every stage.
+      </div>
+      <div class="welcome-steps">
+        <span class="welcome-step-pill">① Remove useless symbols</span>
+        <span class="welcome-step-pill">② Eliminate ε-productions</span>
+        <span class="welcome-step-pill">③ Remove unit productions</span>
+        <span class="welcome-step-pill">④ Chomsky Normal Form</span>
+        <span class="welcome-step-pill">⑤ Greibach Normal Form</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
