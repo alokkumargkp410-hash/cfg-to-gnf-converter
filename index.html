@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFG → CNF & GNF Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e2a;
+    --bg4: #222736;
+    --line: #2a2f3e;
+    --line2: #343a4f;
+    --text: #e8eaf0;
+    --text2: #9aa0b8;
+    --text3: #5c6280;
+    --acc: #7eb8f7;
+    --acc2: #4a90e2;
+    --green: #5ec48c;
+    --green2: #2d7a52;
+    --amber: #f0c060;
+    --amber2: #8a6a20;
+    --coral: #f07878;
+    --coral2: #7a3030;
+    --purple: #b088f0;
+    --teal: #50ccd0;
+    --cnf: #5ec48c;
+    --gnf: #b088f0;
+    --radius: 10px;
+    --shadow: 0 2px 20px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ─── HEADER ─────────────────────────────── */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--acc) 0%, var(--purple) 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .header-badges {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-cnf { color: var(--cnf); border-color: var(--green2); background: rgba(94,196,140,0.08); }
+  .badge-gnf { color: var(--gnf); border-color: #6a48a0; background: rgba(176,136,240,0.08); }
+
+  /* ─── MAIN LAYOUT ─────────────────────────── */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 77px);
+  }
+
+  /* ─── LEFT PANEL ──────────────────────────── */
+  .left-panel {
+    background: var(--bg2);
+    border-right: 1px solid var(--line);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    height: calc(100vh - 77px);
+    position: sticky;
+    top: 77px;
+  }
+
+  .panel-section-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* Examples */
+  .example-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .example-btn {
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: left;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+
+  .example-btn:hover {
+    background: var(--bg4);
+    border-color: var(--acc2);
+    color: var(--text);
+  }
+
+  .example-btn .ex-name {
+    color: var(--acc);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* Input area */
+  .input-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .input-label span { font-size: 11px; color: var(--text3); }
+
+  textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 12px 14px;
+    resize: vertical;
+    min-height: 150px;
+    line-height: 1.8;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--acc2); }
+
+  .hint-box {
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--acc2);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.7;
+  }
+
+  .hint-box code {
+    color: var(--amber);
+    background: rgba(240,192,96,0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .start-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .start-row label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  input[type=text] {
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    width: 72px;
+    transition: border-color 0.2s;
+  }
+
+  input[type=text]:focus { border-color: var(--acc2); }
+
+  .convert-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--acc2) 0%, #3070c0 100%);
+    border: none;
+    border-radius: var(--radius);
+    color: #fff;
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 13px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .convert-btn:hover { opacity: 0.9; }
+  .convert-btn:active { transform: scale(0.98); }
+
+  .clear-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .clear-btn:hover { border-color: var(--line2); color: var(--text2); }
+
+  .error-msg {
+    background: rgba(240,120,120,0.1);
+    border: 1px solid var(--coral2);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--coral);
+  }
+
+  /* Step navigator */
+  .step-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--bg3); }
+  .nav-item.active { background: var(--bg4); border-color: var(--line2); }
+
+  .nav-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--bg4);
+    border: 1px solid var(--line2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--text3);
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .nav-item.active .nav-num, .nav-item.done .nav-num {
+    background: var(--acc2);
+    border-color: var(--acc2);
+    color: #fff;
+  }
+
+  .nav-item.cnf-step .nav-num { background: var(--green2); border-color: var(--green2); color: #fff; }
+  .nav-item.gnf-step .nav-num { background: #6a48a0; border-color: #6a48a0; color: #fff; }
+
+  .nav-label { font-size: 11px; color: var(--text2); line-height: 1.3; }
+  .nav-label strong { display: block; color: var(--text); font-weight: 500; }
+
+  /* ─── RIGHT PANEL ─────────────────────────── */
+  .right-panel {
+    padding: 28px 32px;
+    overflow-y: auto;
+  }
+
+  .welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .welcome-icon {
+    font-size: 48px;
+    line-height: 1;
+  }
+
+  .welcome-title {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.03em;
+  }
+
+  .welcome-sub {
+    font-size: 13px;
+    color: var(--text3);
+    max-width: 440px;
+    line-height: 1.7;
+  }
+
+  .welcome-steps {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .welcome-step-pill {
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  /* Steps display */
+  .steps-view { display: flex; flex-direction: column; gap: 20px; }
+
+  .step-card {
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+    animation: fadeSlide 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-card:nth-child(1) { animation-delay: 0.05s; }
+  .step-card:nth-child(2) { animation-delay: 0.10s; }
+  .step-card:nth-child(3) { animation-delay: 0.15s; }
+  .step-card:nth-child(4) { animation-delay: 0.20s; }
+  .step-card:nth-child(5) { animation-delay: 0.25s; }
+  .step-card:nth-child(6) { animation-delay: 0.30s; }
+  .step-card:nth-child(7) { animation-delay: 0.35s; }
+
+  .step-card.cnf-card { border-color: var(--green2); }
+  .step-card.gnf-card { border-color: #6a48a0; }
+
+  .step-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: var(--bg3);
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .step-head:hover { background: var(--bg4); }
+
+  .step-icon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .icon-default { background: rgba(74,144,226,0.15); }
+  .icon-cnf { background: rgba(94,196,140,0.15); }
+  .icon-gnf { background: rgba(176,136,240,0.15); }
+
+  .step-head-info { flex: 1; }
+
+  .step-head-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .step-head-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  .step-tag {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .tag-cnf { background: rgba(94,196,140,0.15); color: var(--cnf); border: 1px solid var(--green2); }
+  .tag-gnf { background: rgba(176,136,240,0.15); color: var(--gnf); border: 1px solid #6a48a0; }
+  .tag-orig { background: rgba(74,144,226,0.12); color: var(--acc); border: 1px solid rgba(74,144,226,0.3); }
+
+  .chevron {
+    color: var(--text3);
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+
+  .chevron.open { transform: rotate(90deg); }
+
+  .step-body { display: none; }
+  .step-body.open { display: block; }
+
+  /* Explanation */
+  .explanation {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .expl-text {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.75;
+  }
+
+  .expl-text strong { color: var(--acc); font-weight: 500; }
+  .expl-text em { color: var(--amber); font-style: normal; }
+
+  .expl-rules-box {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+
+  .expl-rules-title {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+
+  .formal-rule {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .formal-lhs { color: var(--coral); font-weight: 600; min-width: 36px; }
+  .formal-arrow { color: var(--text3); }
+  .formal-rhs { color: var(--text2); flex: 1; word-break: break-all; }
+  .sym-var { color: var(--acc); }
+  .sym-term { color: var(--green); }
+  .sym-eps { color: var(--amber); }
+  .sym-new { color: var(--purple); }
+
+  /* Grammar display */
+  .grammar-section {
+    padding: 16px 20px;
+  }
+
+  .grammar-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .meta-chip {
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .meta-chip .chip-val { color: var(--text); font-weight: 500; }
+
+  .grammar-rules {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .grammar-rule-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    transition: background 0.1s;
+  }
+
+  .grammar-rule-row:last-child { border-bottom: none; }
+  .grammar-rule-row:hover { background: var(--bg3); }
+
+  .rule-lhs-col {
+    padding: 9px 14px;
+    background: var(--bg3);
+    border-right: 1px solid var(--line);
+    min-width: 54px;
+    font-weight: 600;
+    color: var(--coral);
+    font-size: 13px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .rule-arrow-col {
+    padding: 9px 10px;
+    color: var(--text3);
+    font-size: 13px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .rule-rhs-col {
+    padding: 9px 12px 9px 0;
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .rhs-alt {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  .rhs-sep { color: var(--text3); font-size: 11px; }
+
+  /* Changes highlight */
+  .changed-indicator {
+    width: 4px;
+    align-self: stretch;
+    background: var(--purple);
+    flex-shrink: 0;
+    border-radius: 2px;
+    margin: 6px 0 6px 8px;
+  }
+
+  .new-rule .rule-lhs-col { background: rgba(176,136,240,0.08); }
+
+  /* diff badges */
+  .diff-added { color: var(--green); font-size: 10px; margin-left: 6px; }
+  .diff-removed { color: var(--coral); font-size: 10px; margin-left: 6px; }
+
+  /* Summary bar at bottom of card */
+  .step-summary {
+    padding: 10px 20px;
+    background: var(--bg3);
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .summary-item {
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .summary-item .s-val { color: var(--text2); font-weight: 500; }
+  .summary-item .s-delta-pos { color: var(--green); }
+  .summary-item .s-delta-neg { color: var(--coral); }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--acc2), var(--purple));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* Final result banner */
+  .result-banner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .result-card {
+    background: var(--bg2);
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid var(--line);
+  }
+
+  .result-card.cnf-result { border-color: var(--green2); }
+  .result-card.gnf-result { border-color: #6a48a0; }
+
+  .result-card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+
+  .cnf-result .result-card-title { color: var(--cnf); }
+  .gnf-result .result-card-title { color: var(--gnf); }
+
+  .result-card-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .left-panel { height: auto; position: static; }
+    .explanation { grid-template-columns: 1fr; }
+    .result-banner { grid-template-columns: 1fr; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">∑</div>
+    <div>
+      <div class="logo-text">Grammar Lab</div>
+      <div class="logo-sub">CFG → CNF & GNF Converter</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-cnf">Chomsky Normal Form</span>
+    <span class="badge badge-gnf">Greibach Normal Form</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="left-panel">
+
+    <div>
+      <div class="panel-section-title">Quick Examples</div>
+      <div class="example-grid">
+        <button class="example-btn" onclick="loadEx(0)">
+          <span class="ex-name">Classic</span>Basic two-variable grammar
+        </button>
+        <button class="example-btn" onclick="loadEx(1)">
+          <span class="ex-name">ε-rules</span>With null productions
+        </button>
+        <button class="example-btn" onclick="loadEx(2)">
+          <span class="ex-name">Unit prods</span>Chain productions
+        </button>
+        <button class="example-btn" onclick="loadEx(3)">
+          <span class="ex-name">Complex</span>Left recursion & mix
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-section-title">Grammar Input</div>
+      <div class="input-label">
+        <span>Production rules (one per line)</span>
+      </div>
+      <textarea id="grammar-input" spellcheck="false" placeholder="S -> AB | a&#10;A -> aA | a&#10;B -> bB | b"></textarea>
+
+      <div class="hint-box" style="margin-top:10px;">
+        <strong style="color:var(--text2)">Syntax guide:</strong><br>
+        • Uppercase = variables &nbsp;• Lowercase = terminals<br>
+        • Use <code>|</code> to separate alternatives<br>
+        • Use <code>eps</code> or <code>ε</code> for empty string<br>
+        • e.g. <code>S -> aB | eps</code>
+      </div>
+
+      <div class="start-row" style="margin-top:12px;">
+        <label for="start-sym">Start symbol:</label>
+        <input type="text" id="start-sym" value="S" maxlength="4" />
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="convert-btn" onclick="runConversion()">Convert Grammar →</button>
+      <button class="clear-btn" onclick="clearAll()">Clear / Reset</button>
+    </div>
+
+    <div id="error-box"></div>
+
+    <div id="nav-section" style="display:none;">
+      <div class="panel-section-title">Steps</div>
+      <div class="step-nav" id="step-nav"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel" id="right-panel">
+    <div class="welcome-screen">
+      <div class="welcome-icon">⊢</div>
+      <div class="welcome-title">CFG Normal Form Converter</div>
+      <div class="welcome-sub">
+        Enter a Context-Free Grammar and watch it transform step-by-step into both Chomsky Normal Form and Greibach Normal Form with detailed explanations at every stage.
+      </div>
+      <div class="welcome-steps">
+        <span class="welcome-step-pill">① Remove useless symbols</span>
+        <span class="welcome-step-pill">② Eliminate ε-productions</span>
+        <span class="welcome-step-pill">③ Remove unit productions</span>
+        <span class="welcome-step-pill">④ Chomsky Normal Form</span>
+        <span class="welcome-step-pill">⑤ Greibach Normal Form</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  EXAMPLES
+// ──────────────────────────────────────────────
+const EXAMPLES = [
+  { text: "S -> AB | a\nA -> aA | a\nB -> bB | b", start: "S" },
+  { text: "S -> AB | eps\nA -> aA | eps\nB -> bB | b", start: "S" },
+  { text: "S -> A | B | ab\nA -> a | C\nB -> b\nC -> c", start: "S" },
+  { text: "S -> aAb | B\nA -> aA | C | eps\nB -> bB | b\nC -> cC | eps", start: "S" }
+];
+
+function loadEx(i) {
+  document.getElementById('grammar-input').value = EXAMPLES[i].text;
+  document.getElementById('start-sym').value = EXAMPLES[i].start;
+}
+
+// ──────────────────────────────────────────────
+//  PARSING
+// ──────────────────────────────────────────────
+function parseGrammar(text, startSym) {
+  const rules = {};
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+  if (!lines.length) throw new Error("Please enter at least one production rule.");
+  for (const line of lines) {
+    const arrowIdx = line.indexOf('->');
+    if (arrowIdx < 0) throw new Error(`Missing '->' in rule: "${line}"`);
+    const lhs = line.slice(0, arrowIdx).trim();
+    if (!lhs || !/^[A-Z][A-Z0-9'_]*$/.test(lhs))
+      throw new Error(`Invalid variable name: "${lhs}". Variables must begin with uppercase.`);
+    const rhsPart = line.slice(arrowIdx + 2);
+    const alts = rhsPart.split('|').map(r => r.trim()).filter(r => r.length > 0);
+    if (!rules[lhs]) rules[lhs] = new Set();
+    for (const alt of alts) {
+      const norm = (alt === 'eps' || alt === 'ε' || alt === 'epsilon') ? 'ε' : alt;
+      rules[lhs].add(norm);
+    }
+  }
+  const variables = new Set(Object.keys(rules));
+  const start = (startSym || 'S').trim();
+  if (!variables.has(start)) throw new Error(`Start symbol "${start}" not found. Add a rule for it.`);
+  return { rules, variables, start };
+}
+
+function cloneRules(r) {
+  const o = {};
+  for (const k in r) o[k] = new Set([...r[k]]);
+  return o;
+}
+
+function cloneState(s) {
+  return { rules: cloneRules(s.rules), variables: new Set([...s.variables]), start: s.start };
+}
+
+// ──────────────────────────────────────────────
+//  TOKENIZER
+// ──────────────────────────────────────────────
+function tokenize(prod, variables) {
+  if (prod === 'ε') return ['ε'];
+  const tokens = [];
+  const varsSorted = [...variables].sort((a, b) => b.length - a.length);
+  let i = 0;
+  while (i < prod.length) {
+    let matched = false;
+    for (const v of varsSorted) {
+      if (prod.startsWith(v, i)) { tokens.push(v); i += v.length; matched = true; break; }
+    }
+    if (!matched) { tokens.push(prod[i]); i++; }
+  }
+  return tokens;
+}
+
+function getAllTerminals(rules, variables) {
+  const t = new Set();
+  for (const prods of Object.values(rules))
+    for (const p of prods)
+      if (p !== 'ε')
+        for (const tok of tokenize(p, variables))
+          if (!variables.has(tok)) t.add(tok);
+  return t;
+}
+
+// ──────────────────────────────────────────────
+//  TRANSFORMATIONS
+// ──────────────────────────────────────────────
+let varCounter = 0;
+function freshVar(prefix, vars) {
+  let v;
+  do { v = prefix + (++varCounter); } while (vars.has(v));
+  return v;
+}
+
+function step_newStart(state) {
+  const { rules, variables, start } = state;
+  const newStart = start + '0';
+  varCounter = 0;
+  const r = cloneRules(rules);
+  const vars = new Set([...variables]);
+  r[newStart] = new Set([start]);
+  vars.add(newStart);
+  const newVars = [newStart];
+  return {
+    rules: r, variables: vars, start: newStart,
+    explanation: {
+      summary: `A fresh start symbol <em>${newStart}</em> is introduced with a single unit production <em>${newStart} → ${start}</em>. This guarantees the start symbol never appears on the right-hand side of any rule — a prerequisite for both CNF and GNF conversions.`,
+      formal: [
+        { lhs: newStart, rhs: `${start}`, note: "new production" }
+      ]
+    },
+    changes: { added: [newStart], removed: [] }
+  };
+}
+
+function step_removeUseless(state) {
+  const { rules, variables, start } = state;
+  const r = cloneRules(rules);
+  const vars = new Set([...variables]);
+
+  // Generating
+  const generating = new Set();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const v of vars) {
+      if (generating.has(v)) continue;
+      for (const prod of (r[v] || [])) {
+        if (prod === 'ε') { generating.add(v); changed = true; break; }
+        const toks = tokenize(prod, vars);
+        if (toks.every(t => !vars.has(t) || generating.has(t))) { generating.add(v); changed = true; break; }
+      }
+    }
+  }
+  const nonGen = [...vars].filter(v => !generating.has(v));
+  for (const v of nonGen) { delete r[v]; vars.delete(v); }
+  for (const v of [...vars]) {
+    r[v] = new Set([...r[v]].filter(prod => {
+      if (prod === 'ε') return true;
+      return tokenize(prod, variables).every(t => !variables.has(t) || generating.has(t));
+    }));
+    if (!r[v].size) { delete r[v]; vars.delete(v); }
+  }
+
+  // Reachable
+  const reachable = new Set([start]);
+  const queue = [start];
+  while (queue.length) {
+    const v = queue.shift();
+    for (const prod of (r[v] || [])) {
+      if (prod === 'ε') continue;
+      for (const t of tokenize(prod, vars))
+        if (vars.has(t) && !reachable.has(t)) { reachable.add(t); queue.push(t); }
+    }
+  }
+  const unreachable = [...vars].filter(v => !reachable.has(v));
+  for (const v of unreachable) { delete r[v]; vars.delete(v); }
+
+  return {
+    rules: r, variables: vars, start,
+    explanation: {
+      summary: `<strong>Non-generating variables</strong> (those that cannot derive any terminal string): <em>${nonGen.join(', ') || 'none'}</em>. <strong>Unreachable variables</strong> (not derivable from start): <em>${unreachable.join(', ') || 'none'}</em>. Both classes are useless and safely removed along with all rules containing them.`,
+      formal: [
+        { lhs: "Non-generating", rhs: nonGen.join(', ') || 'none', note: "" },
+        { lhs: "Unreachable", rhs: unreachable.join(', ') || 'none', note: "" }
+      ]
+    },
+    changes: { removed: [...nonGen, ...unreachable], added: [] }
+  };
+}
+
+function step_removeEpsilon(state) {
+  const { rules, variables, start } = state;
+  const r = cloneRules(rules);
+  const vars = new Set([...variables]);
+
+  // Find nullable
+  const nullable = new Set();
+  for (const v of vars) if (r[v] && r[v].has('ε')) nullable.add(v);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const v of vars) {
+      if (nullable.has(v)) continue;
+      for (const prod of (r[v] || [])) {
+        const toks = tokenize(prod, vars);
+        if (toks.every(t => nullable.has(t))) { nullable.add(v); changed = true; break; }
+      }
+    }
+  }
+
+  // Expand combinations
+  for (const v of vars) {
+    const expanded = new Set();
+    for (const prod of (r[v] || [])) {
+      if (prod === 'ε') continue;
+      const toks = tokenize(prod, vars);
+      const nullIdx = toks.map((t, i) => nullable.has(t) ? i : -1).filter(x => x >= 0);
+      for (let mask = 0; mask < (1 << nullIdx.length); mask++) {
+        const skip = new Set(nullIdx.filter((_, j) => mask & (1 << j)));
+        const newProd = toks.filter((_, i) => !skip.has(i)).join('');
+        if (newProd) expanded.add(newProd);
+      }
+      expanded.add(prod);
+    }
+    r[v] = expanded;
+  }
+  for (const v of vars) if (v !== start) r[v].delete('ε');
+
+  const nullStr = [...nullable].join(', ') || 'none';
+  return {
+    rules: r, variables: vars, start,
+    explanation: {
+      summary: `Nullable variables (can derive ε): <em>${nullStr}</em>. For each production containing a nullable symbol, we generate all subsets (with/without each nullable occurrence), then remove ε-productions from all non-start variables. If the start is nullable, it retains its ε-rule.`,
+      formal: [
+        { lhs: "Nullable set", rhs: `{ ${nullStr} }`, note: "" },
+        { lhs: "Rule", rhs: "A → αBβ where B ∈ Nullable ⇒ add A → αβ", note: "" }
+      ]
+    },
+    changes: { added: [], removed: [] }
+  };
+}
+
+function step_removeUnit(state) {
+  const { rules, variables, start } = state;
+  const r = cloneRules(rules);
+  const vars = new Set([...variables]);
+
+  for (const v of vars) {
+    const closure = new Set([v]);
+    const queue = [v];
+    while (queue.length) {
+      const cur = queue.shift();
+      for (const prod of (r[cur] || [])) {
+        const toks = tokenize(prod, vars);
+        if (toks.length === 1 && vars.has(toks[0]) && !closure.has(toks[0])) {
+          closure.add(toks[0]); queue.push(toks[0]);
+        }
+      }
+    }
+    const nonUnit = new Set();
+    for (const u of closure)
+      for (const prod of (r[u] || [])) {
+        const toks = tokenize(prod, vars);
+        if (!(toks.length === 1 && vars.has(toks[0]))) nonUnit.add(prod);
+      }
+    r[v] = nonUnit;
+  }
+
+  return {
+    rules: r, variables: vars, start,
+    explanation: {
+      summary: `Unit productions have the form <em>A → B</em> (single variable). For each variable A, we compute its <strong>unit closure</strong> — all variables reachable through chains of unit productions — and replace A's unit productions with the non-unit productions of all closure members.`,
+      formal: [
+        { lhs: "Unit(A)", rhs: "{ B : A ⟹* B via unit rules }", note: "" },
+        { lhs: "New rules", rhs: "A → α for all B ∈ Unit(A), B → α not a unit rule", note: "" }
+      ]
+    },
+    changes: { added: [], removed: [] }
+  };
+}
+
+function step_toCNF(state) {
+  const { rules, variables, start } = state;
+  const r = cloneRules(rules);
+  const vars = new Set([...variables]);
+  const termMap = {};
+  const newTermVars = [];
+
+  // Replace terminals in long/mixed productions
+  for (const v of [...vars]) {
+    const newP = new Set();
+    for (const prod of [...r[v]]) {
+      const toks = tokenize(prod, vars);
+      if (toks.length === 1) { newP.add(prod); continue; }
+      const mapped = toks.map(t => {
+        if (vars.has(t)) return t;
+        if (!termMap[t]) {
+          const nv = freshVar('T', vars);
+          termMap[t] = nv;
+          vars.add(nv);
+          r[nv] = new Set([t]);
+          newTermVars.push(nv);
+        }
+        return termMap[t];
+      });
+      newP.add(mapped.join(''));
+    }
+    r[v] = newP;
+  }
+
+  // Break into binary
+  const newChainVars = [];
+  for (const v of [...vars]) {
+    if (newTermVars.includes(v)) continue;
+    const newP = new Set();
+    for (const prod of [...r[v]]) {
+      let toks = tokenize(prod, vars);
+      if (toks.length <= 2) { newP.add(prod); continue; }
+      let cur = null;
+      let first = true;
+      while (toks.length > 2) {
+        const nv = freshVar('C', vars);
+        vars.add(nv); r[nv] = new Set(); newChainVars.push(nv);
+        if (first) { newP.add(toks[0] + nv); first = false; cur = nv; }
+        else { r[cur].add(toks[0] + nv); cur = nv; }
+        toks = toks.slice(1);
+      }
+      if (cur) r[cur].add(toks.join(''));
+      else newP.add(toks.join(''));
+    }
+    r[v] = newP;
+  }
+
+  return {
+    rules: r, variables: vars, start,
+    explanation: {
+      summary: `<strong>CNF requires:</strong> every production is either <em>A → BC</em> (two variables) or <em>A → a</em> (one terminal). Step 1 — terminals in mixed/long productions are abstracted into new unit rules <em>Tₙ → a</em>. Step 2 — any production with 3+ symbols is split into a right-branching chain of binary productions using new variables <em>Cₙ</em>.`,
+      formal: [
+        { lhs: "Term vars", rhs: newTermVars.join(', ') || 'none', note: "Tₙ → a" },
+        { lhs: "Chain vars", rhs: newChainVars.join(', ') || 'none', note: "binarization" },
+        { lhs: "CNF form", rhs: "A → BC  |  A → a", note: "" }
+      ]
+    },
+    changes: { added: [...newTermVars, ...newChainVars], removed: [] }
+  };
+}
+
+function step_toGNF(state) {
+  const r = cloneRules(state.rules);
+  const vars = new Set([...state.variables]);
+  const { start } = state;
+  const newVars = [];
+
+  const orderedVars = [start, ...[...vars].filter(v => v !== start).sort()];
+
+  // Phase 1: Eliminate left recursion
+  for (let i = 0; i < orderedVars.length; i++) {
+    const Ai = orderedVars[i];
+    if (!r[Ai]) r[Ai] = new Set();
+
+    for (let j = 0; j < i; j++) {
+      const Aj = orderedVars[j];
+      const toAdd = new Set(), toRem = new Set();
+      for (const prod of r[Ai]) {
+        const toks = tokenize(prod, vars);
+        if (toks[0] === Aj) {
+          toRem.add(prod);
+          for (const sp of (r[Aj] || [])) {
+            const st = tokenize(sp, vars);
+            toAdd.add([...st, ...toks.slice(1)].join(''));
+          }
+        }
+      }
+      toRem.forEach(p => r[Ai].delete(p));
+      toAdd.forEach(p => r[Ai].add(p));
+    }
+
+    // Immediate left recursion
+    const rec = [], nonRec = [];
+    for (const prod of r[Ai]) {
+      const toks = tokenize(prod, vars);
+      (toks[0] === Ai ? rec : nonRec).push(toks);
+    }
+    if (rec.length) {
+      const Bi = freshVar('R', vars);
+      vars.add(Bi); r[Bi] = new Set(); newVars.push(Bi);
+      r[Ai] = new Set();
+      for (const beta of nonRec) r[Ai].add([...beta, Bi].join(''));
+      for (const alpha of rec) {
+        r[Bi].add([...alpha, Bi].join(''));
+        r[Bi].add(alpha.join(''));
+      }
+      orderedVars.splice(i + 1, 0, Bi);
+    }
+  }
+
+  // Phase 2: Substitute until all start with terminal
+  for (let iter = 0; iter < 80; iter++) {
+    let changed = false;
+    for (const v of [...vars]) {
+      const newP = new Set();
+      for (const prod of [...(r[v] || [])]) {
+        const toks = tokenize(prod, vars);
+        if (!toks.length || !vars.has(toks[0])) { newP.add(prod); continue; }
+        const fv = toks[0];
+        for (const sp of (r[fv] || [])) {
+          const st = tokenize(sp, vars);
+          const np = [...st, ...toks.slice(1)].join('');
+          newP.add(np);
+          if (vars.has(st[0])) changed = true;
+        }
+      }
+      r[v] = newP;
+    }
+    if (!changed) break;
+  }
+
+  return {
+    rules: r, variables: vars, start,
+    explanation: {
+      summary: `<strong>GNF requires:</strong> every production starts with a terminal: <em>A → aα</em> where α ∈ V*. Phase 1 orders variables and eliminates left recursion (direct and indirect) using new tail variables <em>Rₙ</em>. Phase 2 repeatedly substitutes leading variables until every production begins with a terminal symbol.`,
+      formal: [
+        { lhs: "New vars", rhs: newVars.join(', ') || 'none', note: "left recursion removal" },
+        { lhs: "GNF form", rhs: "A → a α  (a ∈ Σ, α ∈ V*)", note: "" },
+        { lhs: "Property", rhs: "Enables O(n³) CYK & LL parsers", note: "" }
+      ]
+    },
+    changes: { added: newVars, removed: [] }
+  };
+}
+
+// ──────────────────────────────────────────────
+//  RENDERING
+// ──────────────────────────────────────────────
+function renderRHS(prod, vars) {
+  if (prod === 'ε') return `<span class="sym-eps">ε</span>`;
+  const toks = tokenize(prod, vars);
+  return toks.map(t => {
+    if (t === 'ε') return `<span class="sym-eps">ε</span>`;
+    if (vars.has(t)) return `<span class="sym-var">${t}</span>`;
+    return `<span class="sym-term">${t}</span>`;
+  }).join('');
+}
+
+function renderGrammar(rules, variables, start, highlightNew = []) {
+  const sortedVars = [start, ...[...variables].filter(v => v !== start).sort()];
+  return sortedVars.filter(v => rules[v]).map(v => {
+    const isNew = highlightNew.includes(v);
+    const prods = [...rules[v]];
+    const alts = prods.map(p => `<span class="rhs-alt">${renderRHS(p, variables)}</span>`);
+    const sep = `<span class="rhs-sep">|</span>`;
+    return `
+      <div class="grammar-rule-row${isNew ? ' new-rule' : ''}">
+        ${isNew ? '<div class="changed-indicator"></div>' : ''}
+        <div class="rule-lhs-col">${v}</div>
+        <div class="rule-arrow-col">→</div>
+        <div class="rule-rhs-col">${alts.join(sep)}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderMeta(rules, variables) {
+  const terms = getAllTerminals(rules, variables);
+  const prodCount = Object.values(rules).reduce((s, p) => s + p.size, 0);
+  return `
+    <div class="grammar-meta">
+      <div class="meta-chip">Variables: <span class="chip-val">${[...variables].sort().join(', ')}</span></div>
+      <div class="meta-chip">Terminals: <span class="chip-val">${[...terms].sort().join(', ') || '—'}</span></div>
+      <div class="meta-chip">Productions: <span class="chip-val">${prodCount}</span></div>
+      <div class="meta-chip">Start: <span class="chip-val">${[...variables][0]}</span></div>
+    </div>`;
+}
+
+const STEP_DEFS = [
+  { id: 0, title: "Original Grammar", sub: "Input CFG as entered", icon: "∑", cls: "icon-default", tag: null, tagcls: "" },
+  { id: 1, title: "New Start Symbol", sub: "Isolate start from RHS", icon: "S₀", cls: "icon-default", tag: null, tagcls: "" },
+  { id: 2, title: "Remove Useless Symbols", sub: "Non-generating & unreachable", icon: "✕", cls: "icon-default", tag: null, tagcls: "" },
+  { id: 3, title: "Eliminate ε-Productions", sub: "Null / empty string rules", icon: "ε", cls: "icon-default", tag: null, tagcls: "" },
+  { id: 4, title: "Remove Unit Productions", sub: "Single-variable chains", icon: "↺", cls: "icon-default", tag: null, tagcls: "" },
+  { id: 5, title: "Chomsky Normal Form", sub: "A → BC or A → a only", icon: "CNF", cls: "icon-cnf", tag: "CNF", tagcls: "tag-cnf", cardcls: "cnf-card" },
+  { id: 6, title: "Greibach Normal Form", sub: "A → aα, terminal-first", icon: "GNF", cls: "icon-gnf", tag: "GNF", tagcls: "tag-gnf", cardcls: "gnf-card" }
+];
+
+// ──────────────────────────────────────────────
+//  MAIN CONVERSION
+// ──────────────────────────────────────────────
+function runConversion() {
+  const text = document.getElementById('grammar-input').value.trim();
+  const startSym = document.getElementById('start-sym').value.trim() || 'S';
+  const errBox = document.getElementById('error-box');
+  errBox.innerHTML = '';
+
+  if (!text) {
+    errBox.innerHTML = `<div class="error-msg">Please enter a grammar before converting.</div>`; return;
+  }
+
+  let g;
+  try { g = parseGrammar(text, startSym); }
+  catch(e) { errBox.innerHTML = `<div class="error-msg">${e.message}</div>`; return; }
+
+  varCounter = 0;
+  const steps = [];
+
+  // Step 0: Original
+  steps.push({ def: STEP_DEFS[0], state: cloneState(g), result: { explanation: { summary: "The original grammar as entered. Variables are uppercase, terminals are lowercase. This is our starting point — we will systematically transform this CFG without changing the language it generates (except possibly for ε).", formal: [] }, changes: { added: [], removed: [] } } });
+
+  // Step 1
+  const s1 = step_newStart(cloneState(g));
+  steps.push({ def: STEP_DEFS[1], state: { rules: s1.rules, variables: s1.variables, start: s1.start }, result: s1 });
+
+  // Step 2
+  const s2r = step_removeUseless({ rules: s1.rules, variables: s1.variables, start: s1.start });
+  const s2 = { rules: s2r.rules, variables: s2r.variables, start: s2r.start };
+  steps.push({ def: STEP_DEFS[2], state: cloneState(s2), result: s2r });
+
+  // Step 3
+  const s3r = step_removeEpsilon(cloneState(s2));
+  const s3 = { rules: s3r.rules, variables: s3r.variables, start: s3r.start };
+  steps.push({ def: STEP_DEFS[3], state: cloneState(s3), result: s3r });
+
+  // Step 4
+  const s4r = step_removeUnit(cloneState(s3));
+  const s4 = { rules: s4r.rules, variables: s4r.variables, start: s4r.start };
+  steps.push({ def: STEP_DEFS[4], state: cloneState(s4), result: s4r });
+
+  // Step 5 CNF
+  const s5r = step_toCNF(cloneState(s4));
+  const s5 = { rules: s5r.rules, variables: s5r.variables, start: s5r.start };
+  steps.push({ def: STEP_DEFS[5], state: cloneState(s5), result: s5r });
+
+  // Step 6 GNF (from CNF state)
+  const s6r = step_toGNF(cloneState(s5));
+  const s6 = { rules: s6r.rules, variables: s6r.variables, start: s6r.start };
+  steps.push({ def: STEP_DEFS[6], state: cloneState(s6), result: s6r });
+
+  renderResults(steps);
+}
+
+function renderResults(steps) {
+  // Build nav
+  const navHTML = steps.map((s, i) => `
+    <div class="nav-item${i === 5 ? ' cnf-step' : i === 6 ? ' gnf-step' : ''}" onclick="scrollToStep(${i})">
+      <div class="nav-num">${i}</div>
+      <div class="nav-label">
+        <strong>${s.def.title}</strong>
+        ${s.def.sub}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('step-nav').innerHTML = navHTML;
+  document.getElementById('nav-section').style.display = 'block';
+
+  // Build cards
+  const progressHTML = `<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>`;
+
+  const cardsHTML = steps.map((s, i) => {
+    const { def, state, result } = s;
+    const { rules, variables, start } = state;
+    const expl = result.explanation;
+    const changes = result.changes || { added: [], removed: [] };
+    const prodCount = Object.values(rules).reduce((c, p) => c + p.size, 0);
+
+    const formalHTML = expl.formal && expl.formal.length ? `
+      <div class="expl-rules-box">
+        <div class="expl-rules-title">Formal definition</div>
+        ${expl.formal.map(f => `
+          <div class="formal-rule">
+            <span class="formal-lhs">${f.lhs}</span>
+            <span class="formal-arrow">:</span>
+            <span class="formal-rhs">${f.rhs}</span>
+            ${f.note ? `<span style="color:var(--text3);font-size:11px;">[${f.note}]</span>` : ''}
+          </div>`).join('')}
+      </div>` : '';
+
+    const summaryHTML = `
+      <div class="step-summary">
+        <div class="summary-item">Variables: <span class="s-val">${variables.size}</span></div>
+        <div class="summary-item">Productions: <span class="s-val">${prodCount}</span></div>
+        ${changes.added.length ? `<div class="summary-item">Added: <span class="s-val s-delta-pos">+${changes.added.join(', ')}</span></div>` : ''}
+        ${changes.removed.length ? `<div class="summary-item">Removed: <span class="s-val s-delta-neg">−${changes.removed.join(', ')}</span></div>` : ''}
+        <div class="summary-item" style="margin-left:auto;">Start: <span class="s-val">${start}</span></div>
+      </div>`;
+
+    const isOpen = i === 0 || i === 5 || i === 6;
+
+    return `
+      <div class="step-card ${def.cardcls || ''}" id="step-card-${i}">
+        <div class="step-head" onclick="toggleCard(${i})">
+          <div class="step-icon ${def.cls}">${def.icon}</div>
+          <div class="step-head-info">
+            <div class="step-head-title">
+              <span style="color:var(--text3);font-size:13px;margin-right:8px;">${i}.</span>${def.title}
+            </div>
+            <div class="step-head-sub">${def.sub}</div>
+          </div>
+          ${def.tag ? `<span class="step-tag ${def.tagcls}">${def.tag}</span>` : ''}
+          <span class="chevron${isOpen ? ' open' : ''}" id="chev-${i}">▶</span>
+        </div>
+        <div class="step-body${isOpen ? ' open' : ''}" id="body-${i}">
+          <div class="explanation">
+            <div class="expl-text">${expl.summary}</div>
+            ${formalHTML}
+          </div>
+          <div class="grammar-section">
+            ${renderMeta(rules, variables)}
+            <div class="grammar-rules">
+              ${renderGrammar(rules, variables, start, changes.added)}
+            </div>
+          </div>
+          ${summaryHTML}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('right-panel').innerHTML = progressHTML + `<div class="steps-view">${cardsHTML}</div>`;
+}
+
+function toggleCard(i) {
+  const body = document.getElementById(`body-${i}`);
+  const chev = document.getElementById(`chev-${i}`);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function scrollToStep(i) {
+  const el = document.getElementById(`step-card-${i}`);
+  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+
+function clearAll() {
+  document.getElementById('grammar-input').value = '';
+  document.getElementById('start-sym').value = 'S';
+  document.getElementById('error-box').innerHTML = '';
+  document.getElementById('nav-section').style.display = 'none';
+  document.getElementById('right-panel').innerHTML = `
+    <div class="welcome-screen">
+      <div class="welcome-icon">⊢</div>
+      <div class="welcome-title">CFG Normal Form Converter</div>
+      <div class="welcome-sub">Enter a Context-Free Grammar and watch it transform step-by-step into both Chomsky Normal Form and Greibach Normal Form with detailed explanations at every stage.</div>
+      <div class="welcome-steps">
+        <span class="welcome-step-pill">① Remove useless symbols</span>
+        <span class="welcome-step-pill">② Eliminate ε-productions</span>
+        <span class="welcome-step-pill">③ Remove unit productions</span>
+        <span class="welcome-step-pill">④ Chomsky Normal Form</span>
+        <span class="welcome-step-pill">⑤ Greibach Normal Form</span>
+      </div>
+    </div>`;
+}
+
+// load first example on start
+loadEx(0);
+</script>
+</body>
+</html>
